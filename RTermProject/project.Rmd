@@ -20,7 +20,7 @@ text-align: justify}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 ## Dataset Description:
-The dataset includes several months of data on daily trending YouTube videos. The data is captured in the USA, Great Britain, Germany, Canada, France, Russia, South Korea, Mexico, and India. Each country’s data is recorded in a separate CSV file. The Column data includes: 
+The dataset includes several months of data on daily trending YouTube videos. The data is captured in the USA, Great Britain, Germany, Canada, France, Russia, South Korea, Mexico, and India. Each country is recorded in a separate CSV file. The Column data includes: 
 
 
 Columns                    |   Data Type                          
