@@ -1,6 +1,6 @@
 ---
-title: "Midterm Report- Digital Media Intelligence"
-author: "Truc Huynh, Shrivathsa Gopala Krishna Kumar, Rahul Niranjan Srinivas"
+title: "Final Report- Digital Media Intelligence"
+author: "Shrivathsa Gopala Krishna Kumar, Rahul Niranjan Srinivas, Truc Huynh"
 output: 
   html_document:
      theme: cosmo
@@ -51,14 +51,20 @@ We assume the audience of this report to know the basics of:
 1.	R programming language
 2.	Algebra
 3.	Statistics.
-
-## Importing and Tidying the Data:
-The data is being imported using the read.csv() function. Although this is slower compared to the read_csv(), it is important that the integrity and the proper structure of data be maintained. A single function has been constructed which handles the data import and tidying. It can be seen below: 
-```{r clean}
+```{r libraries}
 library(tidyverse)
 library(dplyr)
 library(corrplot)
 library(lubridate)
+library(ggplot2)
+library(moderndive)
+library(knitr)
+library(shiny)
+```
+## Importing and Tidying the Data:
+The data is being imported using the read.csv() function. Although this is slower compared to the read_csv(), it is important that the integrity and the proper structure of data be maintained. A single function has been constructed which handles the data import and tidying. It can be seen below: 
+```{r tidying_data}
+
 # Function to tidy the data sets
 tidy_dataset <- function(file_name)
 {
@@ -139,7 +145,7 @@ As a result of Exploratory Data Analysis, we will know the following:
 1.	Correlation map for the variables present in the dataset
 2.	Initial graphical visualizations
 
-```{r }
+```{r eda}
 # Exploratory Data Analysis
 # Reading contents from the tidied dataset
 tidy_data_csv <- read.csv('tidydata/newUSvideos.csv', stringsAsFactors = F)
@@ -193,7 +199,7 @@ Example:
 
 #### Pearson Correlation graphical map
 
-```{r corr}
+```{r pearson}
 # Plotting Pearson Correlation graphical map
 correlation_data_pearson <- tidy_data_integer %>%
   cor() %>%
@@ -251,7 +257,7 @@ are highly correlated, with a Coefficient value of 0.88.
 
 #### Density Plot
 
-```{r Visualizations1}
+```{r density_plot}
 # Density Plot
 (
   # Density Plot for Views
@@ -311,7 +317,7 @@ We perform this step, in order to eliminate spurious correlations. In this step 
 
 #### Scatter Plot
 
-```{r}
+```{r scatter_plot}
 #Scatter Plot
 # Scatter Plot for likes vs. views
 (
@@ -382,15 +388,157 @@ Now that we have proven that the correlation is not spurious. We go ahead to ass
 
 **Hypothesis 1:**
 
-Predict the number of likes for a trending video in the dataset
+Predict the number of likes for a trending video in the dataset.
+
+```{r summary_statistics_hyp1}
+# Claculating mean, median and standard deviation of response variable.
+summary_statistics_likes <- tidy_data_csv %>%
+  summarise(
+            mean_likes = mean(likes), 
+            median_likes = median(likes), 
+            sd_likes = sd(likes)
+            )
+names(summary_statistics_likes) <- c("mean likes", "median likes", "standard deviation of likes")
+knitr::kable(summary_statistics_likes)
+# Checking the distribution of response variable.
+ggplot(tidy_data_csv, aes(x = likes)) +
+  geom_histogram()
+# Taking natural log. Since log10 or log or log2 gives infinity for observations containing zero, I have htaken log1p i.e log(1 + x), keeps value calculatable, as log is monotonic, the ordering is preserved. |x| << 1.
+tidy_data_csv_log1p <- tidy_data_csv %>%
+    mutate(log1p_likes = log1p(likes),
+           log1p_views = log1p(views),
+           log1p_comment_count = log1p(comment_count))
+# Checking distribution after taking log1p.
+ggplot(tidy_data_csv_log1p, aes(x = log1p_likes)) +
+  geom_histogram()
+```
+```{r hypothesis_1}
+# Performing 2-fold test to divide the data into training and testing, This is done by randomly assigning
+# True and False to the observations and dividing them later as shown in the code. 
+# Observations that are assigned True - Training data; False - Testing data.
+tidy_data_csv_log1p$training_cases <- rnorm(nrow(tidy_data_csv_log1p)) > 0
+# Fitting linear regression model on training data.
+linear_model_likes_1 <- lm(log1p_likes ~ log1p_comment_count + log1p_views, data = subset(tidy_data_csv_log1p, training_cases))
+# get_regression_points() is a function in the moderndive package, it is a tibble-formatted regression table of outcome/response variable, all explanatory/predictor variables, the fitted/predicted value, and residual.
+likes_regression_points_1 <- get_regression_points(linear_model_likes_1, newdata = subset(tidy_data_csv_log1p, !training_cases)) 
+# The information on residual is calculated. The information meaning -
+# sq_residual -> Residual square
+# sum_sq_residual -> sum of all Residual square
+# mse -> mean of Residual square (also known as mean squared error)
+# rmse -> square root of mean squared error
+# r_squared -> r squared. 
+likes_residual_statistics <- likes_regression_points_1 %>%
+  mutate(sq_residuals = residual^2) %>%
+  summarize(sum_sq_residuals = sum(sq_residuals), mse = mean(sq_residuals), rmse = sqrt(mse), r_squared = 1 - var(residual) / var(log1p_likes))
+knitr::kable(likes_residual_statistics)
+# The distribution of the residual is checked
+ggplot(likes_regression_points_1, aes(x = log10(residual))) +
+  geom_histogram() +
+  labs(x = "residuals", title = "Residuals from the linear model with formula log1p(likes) ~ log1p(comment count) + log1p(views)")
+```
 
 **Hypothesis 2:**
 
-Predict the number of dislikes for a trending video in the dataset
+Predict the number of dislikes for a trending video in the dataset.
+
+```{r summary_statistics_hyp2}
+# Claculating mean, median and standard deviation of response variable.
+summary_statistics_dislikes <- tidy_data_csv %>%
+  summarise(
+            mean_dislikes = mean(dislikes), 
+            median_dislikes = median(dislikes), 
+            sd_dislikes = sd(dislikes)
+            )
+names(summary_statistics_dislikes) <- c("mean dislikes", "median dislikes", "standard deviation of dislikes")
+knitr::kable(summary_statistics_dislikes)
+# Checking the distribution of response variable.
+ggplot(tidy_data_csv, aes(x = dislikes)) +
+  geom_histogram()
+# Taking natural log. Since log10 or log or log2 gives infinity for observations containing zero, I have htaken log1p i.e log(1 + x), keeps value calculatable, as log is monotonic, the ordering is preserved. |x| << 1.
+tidy_data_csv_log1p <- tidy_data_csv %>%
+    mutate(log1p_dislikes = log1p(dislikes),
+           log1p_views = log1p(views),
+           log1p_comment_count = log1p(comment_count))
+# Checking distribution after taking log1p.
+ggplot(tidy_data_csv_log1p, aes(x = log1p_dislikes)) +
+  geom_histogram()
+```
+```{r hypothesis_2}
+# Performing 2-fold test to divide the data into training and testing, This is done by randomly assigning
+# True and False to the observations and dividing them later as shown in the code. 
+# Observations that are assigned True - Training data; False - Testing data.
+tidy_data_csv_log1p$training_cases <- rnorm(nrow(tidy_data_csv_log1p)) > 0
+# Fitting linear regression model on training data.
+linear_model_dislikes_2 <- lm(log1p_dislikes ~ log1p_comment_count + log1p_views, data = subset(tidy_data_csv_log1p, training_cases))
+# get_regression_points() is a function in the moderndive package, it is a tibble-formatted regression table of outcome/response variable, all explanatory/predictor variables, the fitted/predicted value, and residual.
+dislikes_regression_points_2 <- get_regression_points(linear_model_dislikes_2, newdata = subset(tidy_data_csv_log1p, !training_cases)) 
+# The information on residual is calculated. The information meaning -
+# sq_residual -> Residual square
+# sum_sq_residual -> sum of all Residual square
+# mse -> mean of Residual square (also known as mean squared error)
+# rmse -> square root of mean squared error
+# r_squared -> r squared. 
+dislikes_residual_statistics <- dislikes_regression_points_2 %>%
+  mutate(sq_residuals = residual^2) %>%
+  summarize(sum_sq_residuals = sum(sq_residuals), mse = mean(sq_residuals), rmse = sqrt(mse), r_squared = 1 - var(residual) / var(log1p_dislikes))
+knitr::kable(dislikes_residual_statistics)
+# The distribution of the residual is checked
+ggplot(dislikes_regression_points_2, aes(x = log10(residual))) +
+  geom_histogram() +
+  labs(x = "residuals", title = "Residuals from the linear model with formula log1p(dislikes) ~ log1p(comment count) + log1p(views)")
+```
 
 **Hypothesis 3:**
 
 Predict the number of comment count for a trending video in the dataset.
+
+```{r summary_statistics_hyp3}
+# Claculating mean, median and standard deviation of response variable.
+summary_statistics_comment_count <- tidy_data_csv %>%
+  summarise(
+            mean_comment_count = mean(comment_count), 
+            median_comment_count = median(comment_count), 
+            sd_comment_count = sd(comment_count)
+            )
+names(summary_statistics_comment_count) <- c("mean comment count", "median comment count", "standard deviation of comment count")
+knitr::kable(summary_statistics_comment_count)
+# Checking the distribution of response variable.
+ggplot(tidy_data_csv, aes(x = comment_count)) +
+  geom_histogram()
+# Taking natural log. Since log10 or log or log2 gives infinity for observations containing zero, I have htaken log1p i.e log(1 + x), keeps value calculatable, as log is monotonic, the ordering is preserved. |x| << 1.
+tidy_data_csv_log1p <- tidy_data_csv %>%
+    mutate(log1p_likes = log1p(likes),
+           log1p_views = log1p(views),
+           log1p_comment_count = log1p(comment_count))
+# Checking distribution after taking log1p.
+ggplot(tidy_data_csv_log1p, aes(x = log1p_comment_count)) +
+  geom_histogram()
+```
+```{r hypothesis_3}
+# Performing 2-fold test to divide the data into training and testing, This is done by randomly assigning
+# True and False to the observations and dividing them later as shown in the code. 
+# Observations that are assigned True - Training data; False - Testing data.
+tidy_data_csv_log1p$training_cases <- rnorm(nrow(tidy_data_csv_log1p)) > 0
+# Fitting linear regression model on training data.
+linear_model_comment_count_3 <- lm(log1p_comment_count ~ log1p_likes + log1p_views, data = subset(tidy_data_csv_log1p, training_cases))
+# get_regression_points() is a function in the moderndive package, it is a tibble-formatted regression table of outcome/response variable, all explanatory/predictor variables, the fitted/predicted value, and residual.
+comment_count_regression_points_3 <- get_regression_points(linear_model_comment_count_3, newdata = subset(tidy_data_csv_log1p, !training_cases)) 
+# The information on residual is calculated. The information meaning -
+# sq_residual -> Residual square
+# sum_sq_residual -> sum of all Residual square
+# mse -> mean of Residual square (also known as mean squared error)
+# rmse -> square root of mean squared error
+# r_squared -> r squared. 
+comment_count_residual_statistics <- comment_count_regression_points_3 %>%
+  mutate(sq_residuals = residual^2) %>%
+  summarize(sum_sq_residuals = sum(sq_residuals), mse = mean(sq_residuals), rmse = sqrt(mse), r_squared = 1 - var(residual) / var(log1p_comment_count))
+knitr::kable(comment_count_residual_statistics)
+# The distribution of the residual is checked
+ggplot(comment_count_regression_points_3, aes(x = log10(residual))) +
+  geom_histogram() +
+  labs(x = "residuals", title = "Residuals from the linear model with formula log1p(comment_count) ~ log1p(likes) + log1p(views)")
+```
+
 
 
 ## Reason for choosing the Hypotheses:
@@ -415,11 +563,14 @@ From the Spearman correlation map. It is evident that Trending date and Publish 
 
 We follow K-Fold cross validation technique, as it is best suited for small dataset^5^.
 
+
 ## Challenges:
 
 Due to the COVID-19, and one of our team members stuck in Boston we will not be able to meet. We need to strategize our communication to adapt to this situation.
 
 We need to come up with a model for predicting the causal effect for the strong correlation between the trending month and publish month. We need to still investigate further in order to come up with the suitable hypothesis for the same.
+
+
 
 ## References
 
