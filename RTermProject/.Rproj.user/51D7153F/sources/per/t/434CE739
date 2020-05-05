@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1588611803339.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3761878719",
+    "id" : "434CE739",
+    "lastKnownWriteTime" : 1588612238,
+    "last_content_update" : 1588612238718,
+    "path" : "C:/Users/Valued Customer/Downloads/Huynh_Truc_Final.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "148,36",
+        "disableDependencyDiscovery" : "1",
+        "scrollLine" : "108",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

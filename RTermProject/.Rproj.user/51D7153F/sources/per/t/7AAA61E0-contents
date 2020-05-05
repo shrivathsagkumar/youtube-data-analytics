@@ -1,0 +1,431 @@
+---
+title: "Midterm Report- Digital Media Intelligence"
+author: "Truc Huynh, Shrivathsa Gopala Krishna Kumar, Rahul Niranjan Srinivas"
+output: 
+  html_document:
+     theme: cosmo
+     highlight: monochrome
+     toc: true
+     toc_float: false
+     toc_depth: 5
+     code_folding: hide
+     df_print: kable
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+## Dataset Description:
+The dataset includes several months of data on daily trending YouTube videos. The data is captured in the USA, Great Britain, Germany, Canada, France, Russia, South Korea, Mexico, and India. Each country is recorded in a separate CSV file. The Column data includes: 
+
+
+Columns                    |   Data Type                          
+---------------------------|----------------
+1.  video_id               | String
+2.	trending_date          | Date
+3.	title                  | String
+4.	channel_title          | String
+5.	category_id            | Integer
+6.	publish_time           | Date
+7.	tags                   | String
+8.	views                  | Integer
+9.	likes                  | Integer
+10.	dislikes               | Integer
+11.	comment_count          | Integer
+12. thumbnail_link         | String
+13. comments_disabled      | Boolean
+14.	ratings_disable        | Boolean
+15. video_error_or_removed | Boolean
+16. description            | String
+
+## Purpose of the Project: 
+Vloggers on YouTube are provided with visual analytics on the content they upload by default, but they do not get the overall visualization of their competitor. Analyzing trending videos may provide publishers with the ability to predict the trend. Thus, they can develop their future content based on the analysis. Our analysis provides market forecast and intelligence which reveals information on the viewership, likes, dislikes. This prediction is based on many parameters and knowledge that our models has acquired by analyzing most trended videos that has been uploaded on YouTube. So, this can be extremely useful and profitable for YouTube channels who depend on their channels as a source of income.
+
+## Intended Audience 
+We assume the audience of this report to know the basics of:
+1.	R programming language
+2.	Algebra
+3.	Statistics.
+
+## Importing and Tidying the Data:
+The data is imported using the “read.csv()”. Although read.csv() is slower compared to the read_csv(), it help maintain the the integrity and proper structure of the imported data. To handle the data import and tidying, a function has been constructed:
+```{r clean}
+library(tidyverse)
+library(dplyr)
+library(corrplot)
+library(lubridate)
+# Function to tidy the data sets
+tidy_dataset <- function(file_name)
+{
+  #---- Reading the data
+  path <- paste('data/',file_name,sep='')
+  mydata <- read.csv(path, stringsAsFactors = FALSE)
+  
+  #---- Tidying the data
+  
+  #Changing the format of Trending Date to a readable format
+  mydata$trending_date <- as.Date(mydata$trending_date, format = "%y.%d.%m")
+  #Adding a column called days of the week to the data starting Sunday
+  mydata$dayOfWeek <- wday(as.Date(mydata$trending_date, format = "%y.%d.%m"))
+  #Editing the date to have only the month
+  mydata$trending_date <- format(as.Date(mydata$trending_date), "%m")
+  #Changing the date to a factor type
+  mydata$trending_date <- as.factor(mydata$trending_date)
+  #Changing the format of Trending Date to a readable format
+  mydata$publish_time <- substr(mydata$publish_time, 0, 10)
+  mydata$publish_time <- as.Date(mydata$publish_time, format = "%Y-%m-%d")
+  #Editing the date to have only the month
+  mydata$publish_time <- format(as.Date(mydata$publish_time), "%m")
+  #Changing the date to a factor type
+  mydata$publish_time <- as.factor(mydata$publish_time)
+
+  #Changing column names of trending_date and publish_time
+  names(mydata)[2] <- "trending_month" 
+  names(mydata)[6] <- "publish_month" 
+  
+  #Getting rid of unnecessary variables
+  d_subset <- mydata[,c(2,3,4,5,6,7,8,9,10,11,13,14,15,16,17)]
+  
+  #If the video has no tags or if the video has no description, omitting it
+  new_dataset <- d_subset[d_subset$tags != '[none]', ]
+  new_dataset <- new_dataset[new_dataset$description != '', ]
+  
+  #---- Creating New Dataset
+  newfile = paste('tidydata/new',file_name,sep='')
+  write.csv(new_dataset, newfile, row.names = FALSE)
+}
+#Calling the function to tidy the dataset and obtain a tidy csv file
+tidy_dataset("USvideos.csv")
+```
+The code above shows the function used to import and clean data. After the data is imported, the data is tidied. The process followed for tidying the data is as follows:
+
+1. The date is processed so that it is in a readable format. And, only the required component of the date which is the month is selected.i.e. The variable trending_date and publish_time are cleaned to obtain the respective month.
+2. The same process is repeated for both, trending_date and publish_time.
+3. These variables are changed to a factor type to help in further analysis.
+4. Two new variables are created which are basically containing the values of publish_time and trending_date. But, now, they are renamed to publish_month and trending_month respectively.
+5. Then, the videos unnecessary to our project, i.e., the  ones with no tags or no description are being omitted for the sake of convenience. This will not have a big impact on the analysis because most of them are outliers and losing them does not affect the analysis greatly.
+
+Then, a new csv file is generated by using the write.csv() function. The new file is renamed as the same name as the input file, but with the a ‘new’ appended at the beginning of the filename. So, a new csv file containing the tidied data is generated once the function is called. The input to a function is a file. Eg: tidy_dataset(CAvideos.csv). So, once this function is called, the CAvideos.csv is tidied and another file called newCAvideos.csv is generated. This holds the tidied data. After the data is tidied, the structure of the data frame is as follows:
+
+
+Columns                    |   Data Type                  
+---------------------------|----------------
+1.	trending_month         | Factor
+2.	title                  | String
+3.	channel_title          | String
+4.	category_id            | Integer
+5.	publish_month          | Factor
+6.	tags                   | String
+7.	views                  | Integer
+8.	likes                  | Integer
+9.	dislikes               | Integer
+10.	comment_count          | Integer
+11. comments_disabled      | String
+12.	ratings_disable        | String
+13. video_error_or_removed | String
+14. description            | String
+15. day_of_week            | Factor
+
+## Exploratory Data Analysis
+Exploratory Data Analysis is the critical process of performing initial investigations on the obtained data in order to build hypotheses, expose anomalies present and check assumptions.
+
+As a result of Exploratory Data Analysis, we will know the following:
+
+1.	Correlation map for the variables present in the dataset
+2.	Initial graphical visualizations
+
+```{r }
+# Exploratory Data Analysis
+# Reading contents from the tidied dataset
+tidy_data_csv <- read.csv('tidydata/newUSvideos.csv', stringsAsFactors = F)
+tidy_data_csv[,c("trending_month","publish_month")] <- lapply(
+  tidy_data_csv[,
+            c(
+              "trending_month",
+              "publish_month"
+              )
+            ],as.factor)
+# Separating integers type variable from the dataset from the rest of the table
+tidy_data_integer <- data.frame(tidy_data_csv$views, 
+                                tidy_data_csv$likes,
+                                tidy_data_csv$dislikes, 
+                                tidy_data_csv$comment_count)
+# Renaming the columns created in the previous dataframe.
+names(tidy_data_integer) <- c("views", 
+                              "likes", 
+                              "dislikes", 
+                              "comment_count")
+```
+## Correlation Definition
+Correlation is the bivariate (two variable) analysis that measures the strength of association between two variables. It is also used to determine the direction of the association. The strength of the association is expressed by the correlation coefficient, whose value varies between -1 and +1. A value of +1 indicates a strong positive correlation, a value of -1 indicates a strong negative correlation and a value of 0 indicates there is no correlation. Positive correlation meaning the value of the response variable tends to change in the same direction for every change in the explanatory variable. Negative correlation meaning value of the response variable tends to change in the opposite direction for every change in the explanatory variable. The closer the coefficient value is to zero the weaker the strength of correlation. 
+
+### Reasons for performing correlation analysis
+We perform Correlation analysis in order to determine the strength of association between variables in the dataset. By doing so we will be able to know the potential attributes about each variable.
+
+Correlation is strictly used to test association between variables, it does not make any assumptions whether one variable dependent on the other. 
+
+### Different types of Correlations ^1^
+
+1. Pearson Product Moment Correlation
+2. Spearman Rank Correlation
+3. Kendall Rank Correlation
+
+
+
+### Pearson Correlation:
+It is a technique used to measure two quantitative and continuous variables^2^.
+
+### Spearman Rank Correlation:
+It is a technique used when we need to measure correlation between two ranked variables or when  we want to measure the correlation between a quantitative variable and a ranked variable^3^.
+
+### Kendall Rank Correlation:
+It is a technique used when we need to measure the correlation between pairs of bivariate points, the co-ordinates are measured individually to declare each point in the graph as concordant or discordant with respect to the other points on the graph. 
+
+Example: 
+
+![Kendall Rank Correlation](images/1.png)
+
+
+#### Pearson Correlation graphical map
+
+```{r corr}
+# Plotting Pearson Correlation graphical map
+correlation_data_pearson <- tidy_data_integer %>%
+  cor() %>%
+  corrplot(
+    method = "color",
+    type = "upper", order = "hclust", number.cex = .7,
+    addCoef.col = "black", # Add coefficient of correlation
+    tl.col = "black", tl.srt = 90, # Text label color and rotation
+    # hide correlation coefficient on the principal diagonal
+    diag = FALSE
+    )
+```
+
+From the Pearson Correlation map, it is clear that, 
+
+1.	Views and likes
+2.	Comment count and likes 
+
+These are strongly correlated with a coefficient value of 0.85 and 0.85 respectively. Following which,
+
+1.	Comment count and dislikes 
+2.	Comment count and views
+These pairs moderately correlated with a coefficient value of 0.62 and 0.66 respectively.
+
+While we find the remaining pairs are also positively correlated, we ignore the correlation because the value of the remaining pairs relative to the above four pairs are weakly correlated.
+
+#### Spearman Correlation Map
+
+```{r spearman}
+#Creating a data frame for calculating Spearman Correlation Map
+trended_month <- as.integer(tidy_data_csv$trending_month)
+published_month <- as.integer(tidy_data_csv$publish_month)
+ordinal_data_frame <- cbind(trended_month,published_month)
+
+#Plotting Spearman Correlation graphical map
+correlation_data_spearman <- ordinal_data_frame %>%
+  cor(
+    method = "spearman",
+    use = "pairwise.complete.obs") %>%
+  corrplot(
+    method = "color",
+    type = "upper", order = "hclust", number.cex = .7,
+    # Add coefficient of correlation
+    addCoef.col = "black",
+    # Text label color and rotation
+    tl.col = "black", tl.srt = 90, 
+    # hide correlation coefficient on the principal diagonal
+    diag = FALSE
+  )
+```
+
+From the Spearman Correlation map, it is clear that,
+1.	Trending month and Published month
+are highly correlated, with a Coefficient value of 0.88.
+
+#### Density Plot
+
+```{r Visualizations1}
+# Density Plot
+(
+  # Density Plot for Views
+  density_plot_views <- tidy_data_csv %>%
+  ggplot(
+    aes(
+      x = log(views)
+        )
+    ) +
+  geom_density(bw = 1)+
+    ggtitle("Density Plot for Views")
+)
+(
+  # Density Plot for likes
+  density_plot_likes <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(likes)
+      )
+    ) +
+    geom_density(
+      bw = 1
+    ) +
+    ggtitle("Density Plot for likes")
+)
+(
+  # Density Plot for dislikes
+  density_plot_dislikes <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(dislikes)
+      )
+    ) +
+    geom_density(
+      bw = 1
+    )+
+    ggtitle("Density Plot for dislikes")
+)
+(
+  # Density Plot for comment_count
+  density_plot_comment <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(comment_count)
+      )
+    ) +
+    geom_density(
+      bw = 1
+    )+
+    ggtitle("Density Plot for comment_count")
+)
+```
+
+From the Density plots we conclude that all the continuous variables follow the normal distribution.
+This brings to the next step for verifying correlation is valid or spurious. We term a correlation is Spurious when the correlation matrix shows a strong correlation coefficient, but the scatterplot does not show any possible linear curve fit. 
+We perform this step, in order to eliminate spurious correlations. In this step we draw scatter plots to the strong and moderately correlated variable pairs. 
+
+#### Scatter Plot
+
+```{r}
+#Scatter Plot
+# Scatter Plot for likes vs. views
+(
+  scatter_likes_views <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(views),
+        y = log(likes)
+      )
+    ) +
+    geom_point()+
+    ggtitle("Scatter Plot for likes vs. views")
+)
+# Scatter Plot for comment_count vs. likes
+(
+  scatter_likes_comment <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(likes),
+        y = log(comment_count)
+      )
+    ) +
+    geom_point()+
+    ggtitle("Scatter Plot for comment_count vs. likes")
+)
+# Scatter Plot for comment_count vs. dislikes 
+(
+  scatter_dis_com <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(dislikes),
+        y = log(comment_count)
+      )
+    ) +
+    geom_point()+
+    ggtitle("Scatter Plot for comment_count vs. dislikes")
+)
+# Scatter Plot for views vs. comment_count
+(
+  scatter_dis_com <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = log(views),
+        y = log(comment_count)
+      )
+    ) +
+    geom_point()+
+    ggtitle("Scatter Plot for views vs. comment_count")
+)
+# Scatter Plot for publish_month vs trending_month
+(
+  scatter_dis_com <- tidy_data_csv %>%
+    ggplot(
+      aes(
+        x = publish_month,
+        y = trending_month
+      )
+    ) +
+    geom_point()+
+    ggtitle("Scatter Plot for publish_month vs trending_month")
+)
+```
+
+From the Scatter plots we conclude that all the selected variable pairs are not spurious. 
+Now that we have proven that the correlation is not spurious. We go ahead to assume that the relationship is valid.
+	
+## Hypotheses:
+
+**Hypothesis 1:**
+
+Predict the number of likes for a trending video in the dataset
+
+**Hypothesis 2:**
+
+Predict the number of dislikes for a trending video in the dataset
+
+**Hypothesis 3:**
+
+Predict the number of comment count for a trending video in the dataset.
+
+
+## Reason for choosing the Hypotheses:
+
+As a result of Exploratory Data Analysis, we noticed that:
+
+1. Views and likes
+2. Comment count and likes
+3. Comment count and dislikes
+4. Comment count and views
+
+Are strongly interdependent, however we make no assumption about the causal effect. The strong interdependence gives us an insight to further investigate to check the causality of this interdependence.
+
+
+## Reason and Selection of Model:
+
+From the Pearson correlation map, we can conclude that there is strong interdependence on many continuous variables of the dataset. This tells us that there is a possibility of using simple linear regression because simple linear regression is useful for finding the relationship between two continuous variables in a dataset.
+
+From the Spearman correlation map. It is evident that Trending date and Publish Date are strongly interdependent, however further investigation is required to help us predict this strong association.
+
+## Hypotheses Test
+
+We follow K-Fold cross validation technique, as it is best suited for small dataset^5^.
+
+## Challenges:
+
+Due to the COVID-19, and one of our team members stuck in Boston we will not be able to meet. We need to strategize our communication to adapt to this situation.
+
+We need to come up with a model for predicting the causal effect for the strong correlation between the trending month and publish month. We need to still investigate further in order to come up with the suitable hypothesis for the same.
+
+## References
+
+1. Kerley, Christa. "What Are the Different Types of Correlations?" sciencing.com, https://sciencing.com/different-types-correlations-6979655.html. March 25 2020.
+2. University of the West of England, Pearson's Correlation Coefficient.
+Retrieved March 25, 2020, from http://learntech.uwe.ac.uk/da/Default.aspx?pageid=1442.
+3. McDonald, J.H. 2014. Handbook of Biological Statistics (3rd ed.). Sparky House Publishing, Baltimore, Maryland.
+4. Clapham, Matthew. E. Jan 30, 2016, 19: Non-parametric correlation, Retrieved March 25, 2020, from https://www.youtube.com/watch?v=bAstMHbytK0
+5. AS (2017). JMP 13 Fitting Linear Models, Second Edition.
+

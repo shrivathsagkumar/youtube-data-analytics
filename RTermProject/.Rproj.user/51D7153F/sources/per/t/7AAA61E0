@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1588004360560.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2742266222",
+    "id" : "7AAA61E0",
+    "lastKnownWriteTime" : 1588008469,
+    "last_content_update" : 1588008469,
+    "path" : "~/GitHub/youtube-data-analytics/RTermProject/project.Rmd",
+    "project_path" : "project.Rmd",
+    "properties" : {
+        "cursorPosition" : "191,0",
+        "scrollLine" : "184"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
