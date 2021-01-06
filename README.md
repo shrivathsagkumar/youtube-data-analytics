@@ -1,7 +1,7 @@
 # Youtube Trending Prediction
 
-I edit this To: Shrivathsa Gopala Krishna Kumar
-To remember our firendship and dedicate his work.
+- I edit this To: Shrivathsa Gopala Krishna Kumar.
+- To remember our firendship and dedicate his work.
 
 ## Introduction
 Vloggers on YouTube are provided with visual analytics on the content they upload by default, but they
