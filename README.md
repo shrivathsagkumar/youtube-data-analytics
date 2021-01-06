@@ -87,7 +87,7 @@ Rdata <- read.csv("~/R/DataMining/youtube-data-analytic/data/data.csv", header=T
 hit the "Knit" button
 ```
 
-![alt](https://github.com/shrivathsagkumar/youtube-data-analytics/blob/master/src/images/1.PNG)
+![alt](https://github.com/shrivathsagkumar/youtube-data-analytics/blob/master/src/images/1.png)
 
 ## Deployment
 This can be deployed to any database system for prediction. Please note the application will work with any bigger or smaller data set as long as it follows the design pattern of this data set.
