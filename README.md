@@ -4,11 +4,11 @@
 - To remember our firendship and dedicate his work.
 
 ## Introduction
-Vloggers on YouTube are provided with visual analytics on the content they upload by default, but they
+This is a group project (machine Learning): Vloggers on YouTube are provided with visual analytics on the content they upload by default, but they
 do not get the overall visualization of their competitor. Analyzing trending videos may provide publishers
 with the ability to predict the trend. Thus, they can develop their future content based on the analysis.
 Our analysis provides market forecast and intelligence which reveals information on the viewership, likes
-and dislikes. This prediction is based on many parameters and knowledge that our models have acquired by
+and dislikes. This model prediction is based on many parameters and knowledge that our models have acquired by
 analyzing most trended videos that have been uploaded on YouTube. So, this can be extremely useful and
 profitable for YouTube channels who depend on their channels as a source of income.
 . I also included 15 pages of research (by Shrivathsa Gopala Krishna Kumar, Rahul Niranjan Srinivas, and myself) that can be found [here](https://github.com/shrivathsagkumar/youtube-data-analytics/blob/master/src/Final-Report-pdf.pdf).
